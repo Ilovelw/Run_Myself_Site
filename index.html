@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>时空诗韵 - 3D视觉体验</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;700&family=Cinzel:wght@400;700&family=Cormorant+Garamond:wght@300;400;600&family=Playfair+Display:wght@400;600&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Noto Serif SC', serif;
+            background: #0a0a1a;
+            color: #e6e6ff;
+            overflow: hidden;
+            height: 100vh;
+            perspective: 1000px;
+        }
+        
+        #canvas-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: -1;
+        }
+        
+        .content {
+            position: relative;
+            z-index: 10;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            height: 100vh;
+            padding: 5vh 5%;
+        }
+        
+        .time-section {
+            text-align: center;
+            margin-top: 10vh;
+        }
+        
+        .time-display {
+            font-family: 'Cinzel', serif;
+            font-size: 4.5rem;
+            font-weight: 700;
+            color: #ffffff;
+            text-shadow: 0 0 20px rgba(100, 149, 237, 0.8),
+                         0 0 40px rgba(100, 149, 237, 0.6);
+            margin-bottom: 2rem;
+            animation: glow 3s infinite alternate;
+            transform-style: preserve-3d;
+            transform: translateZ(50px);
+        }
+        
+        @keyframes glow {
+            from {
+                text-shadow: 0 0 10px rgba(100, 149, 237, 0.8),
+                             0 0 20px rgba(100, 149, 237, 0.6);
+            }
+            to {
+                text-shadow: 0 0 20px rgba(100, 149, 237, 1),
+                             0 0 40px rgba(100, 149, 237, 0.8),
+                             0 0 60px rgba(100, 149, 237, 0.6);
+            }
+        }
+        
+        .poem-section {
+            text-align: center;
+            max-width: 1800px;
+            width: fit-content;
+            margin: 0 auto;
+            padding: 3rem;
+            background: rgba(10, 15, 35, 0.7);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(100, 149, 237, 0.3);
+            box-shadow: 0 0 30px rgba(100, 149, 237, 0.2);
+            transform-style: preserve-3d;
+            transform: translateZ(30px) rotateX(5deg);
+            transition: transform 0.8s ease, opacity 0.8s ease;
+            opacity: 1;
+        }
+        
+        .poem-section.fade-out {
+            opacity: 0;
+            transform: translateZ(30px) rotateX(5deg) scale(0.95);
+        }
+        
+        .chinese-poem {
+            font-size: 2.5rem;
+            line-height: 1.6;
+            margin-bottom: 1.5rem;
+            color: #ffffff;
+            text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+            font-weight: 700;
+            letter-spacing: 2px;
+        }
+        
+        .english-poem {
+           font-family: 'Playfair Display', serif;
+           font-size: 1.6rem;
+           line-height: 1.6;
+           color: #d4e1ff;
+           font-style: italic;
+           margin-bottom: 1rem;
+           font-weight: 400;
+           letter-spacing: 1.5px;
+           text-shadow: 0 0 5px rgba(100, 149, 237, 0.5);
+       }
+        
+        .footer {
+            text-align: center;
+            padding: 2rem 0;
+            font-size: 1rem;
+            color: #a0a0c0;
+            transform-style: preserve-3d;
+            transform: translateZ(10px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 2rem;
+        }
+        
+        .copyright, .days-running {
+            text-align: center;
+        }
+        
+        .days-running span {
+            color: #6495ed;
+            font-weight: bold;
+            text-shadow: 0 0 5px rgba(100, 149, 237, 0.5);
+        }
+        
+        /* 3D浮动粒子效果 */
+        .floating-particle {
+            position: absolute;
+            background: rgba(100, 149, 237, 0.3);
+            border-radius: 50%;
+            pointer-events: none;
+            z-index: 5;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .time-display {
+                font-size: 3rem;
+            }
+            
+            .chinese-poem {
+                font-size: 1.8rem;
+            }
+            
+            .english-poem {
+                font-size: 1.4rem;
+            }
+            
+            .poem-section {
+                padding: 2rem;
+            }
+            
+            .footer {
+                flex-direction: column;
+                gap: 1rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="canvas-container"></div>
+    
+    <div class="content">
+        <div class="time-section">
+            <div class="time-display" id="current-time">0000年00月00日 00:00:00</div>
+        </div>
+		
+		<div class="poem-section">
+            <div class="chinese-poem" id="chinese-poem"></div>
+            <div class="english-poem" id="english-poem"></div>
+        </div>
+        
+        <div class="footer">
+            <div class="copyright">© 2025 By法师</div>
+            <div class="days-running">本站已稳定运行 <span id="days-counter"></span> 天</div>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+    <!-- 引入外部古诗数据 -->
+    <script src="poems.js"></script>
+    <script>
+        // 初始化Three.js场景
+        let scene, camera, renderer, particles;
+        
+        function initThreeJS() {
+            // 创建场景
+            scene = new THREE.Scene();
+            
+            // 创建相机
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = 30;
+            
+            // 创建渲染器
+            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.setClearColor(0x0a0a1a, 1);
+            document.getElementById('canvas-container').appendChild(renderer.domElement);
+            
+            // 添加环境光
+            const ambientLight = new THREE.AmbientLight(0x333366);
+            scene.add(ambientLight);
+            
+            // 添加点光源
+            const pointLight = new THREE.PointLight(0x6495ed, 1, 100);
+            pointLight.position.set(10, 10, 10);
+            scene.add(pointLight);
+            
+            // 创建粒子系统
+            const particlesGeometry = new THREE.BufferGeometry();
+            const particlesCount = 5000;
+            
+            const posArray = new Float32Array(particlesCount * 3);
+            const colorArray = new Float32Array(particlesCount * 3);
+            
+            for(let i = 0; i < particlesCount * 3; i++) {
+                // 位置
+                posArray[i] = (Math.random() - 0.5) * 100;
+                
+                // 颜色 - 蓝色调
+                colorArray[i] = Math.random() * 0.5 + 0.5; // 0.5到1之间的蓝色调
+            }
+            
+            particlesGeometry.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+            particlesGeometry.setAttribute('color', new THREE.BufferAttribute(colorArray, 3));
+            
+            const particlesMaterial = new THREE.PointsMaterial({
+                size: 0.1,
+                vertexColors: true,
+                transparent: true,
+                opacity: 0.8
+            });
+            
+            particles = new THREE.Points(particlesGeometry, particlesMaterial);
+            scene.add(particles);
+            
+            // 动画循环
+            function animate() {
+                requestAnimationFrame(animate);
+                
+                particles.rotation.x += 0.0005;
+                particles.rotation.y += 0.001;
+                
+                renderer.render(scene, camera);
+            }
+            
+            animate();
+            
+            // 窗口大小调整
+            window.addEventListener('resize', () => {
+                camera.aspect = window.innerWidth / window.innerHeight;
+                camera.updateProjectionMatrix();
+                renderer.setSize(window.innerWidth, window.innerHeight);
+            });
+        }
+        
+        // 更新时间显示
+        function updateTime() {
+            const now = new Date();
+            const year = now.getFullYear();
+            const month = String(now.getMonth() + 1).padStart(2, '0');
+            const date = String(now.getDate()).padStart(2, '0');
+            const hours = String(now.getHours()).padStart(2, '0');
+            const minutes = String(now.getMinutes()).padStart(2, '0');
+            const seconds = String(now.getSeconds()).padStart(2, '0');
+            
+            document.getElementById('current-time').textContent = 
+                `${year}年${month}月${date}日 ${hours}:${minutes}:${seconds}`;
+        }
+        
+        // 计算并更新运行天数
+        function updateRunningDays() {
+            // 设置网站上线日期
+            const launchDate = new Date('2025-01-01');
+            launchDate.setDate(launchDate.getDate() - 10);
+            
+            // 计算运行天数
+            const now = new Date();
+            const timeDiff = now.getTime() - launchDate.getTime();
+            const daysRunning = Math.floor(timeDiff / (1000 * 3600 * 24));
+            
+            // 更新显示
+            document.getElementById('days-counter').textContent = daysRunning;
+        }
+        
+        // 随机选择古诗
+        function getRandomPoem() {
+            const randomIndex = Math.floor(Math.random() * poems.length);
+            return poems[randomIndex];
+        }
+        
+        // 更新古诗显示
+        function updatePoem() {
+            const poemSection = document.querySelector('.poem-section');
+            
+            // 淡出动画
+            poemSection.classList.add('fade-out');
+            
+            setTimeout(() => {
+                const poem = getRandomPoem();
+                document.getElementById('chinese-poem').textContent = poem.chinese;
+                document.getElementById('english-poem').textContent = poem.english;
+                
+                // 淡入动画
+                poemSection.classList.remove('fade-out');
+            }, 800);
+        }
+        
+        // 创建浮动粒子效果
+        function createFloatingParticles() {
+            for (let i = 0; i < 20; i++) {
+                const particle = document.createElement('div');
+                particle.classList.add('floating-particle');
+                
+                const size = Math.random() * 10 + 5;
+                particle.style.width = `${size}px`;
+                particle.style.height = `${size}px`;
+                
+                particle.style.left = `${Math.random() * 100}vw`;
+                particle.style.top = `${Math.random() * 100}vh`;
+                
+                document.body.appendChild(particle);
+                
+                // 动画
+                animateParticle(particle);
+            }
+        }
+        
+        function animateParticle(particle) {
+            const duration = Math.random() * 20 + 10;
+            const xMovement = (Math.random() - 0.5) * 100;
+            const yMovement = (Math.random() - 0.5) * 100;
+            
+            particle.style.transition = `all ${duration}s linear`;
+            particle.style.transform = `translate(${xMovement}vw, ${yMovement}vh)`;
+            
+            setTimeout(() => {
+                particle.style.left = `${Math.random() * 100}vw`;
+                particle.style.top = `${Math.random() * 100}vh`;
+                particle.style.transition = 'none';
+                particle.style.transform = 'translate(0, 0)';
+                
+                setTimeout(() => {
+                    animateParticle(particle);
+                }, 100);
+            }, duration * 1000);
+        }
+        
+        // 初始化
+        document.addEventListener('DOMContentLoaded', () => {
+            initThreeJS();
+            updateTime();
+            updateRunningDays();
+            updatePoem();
+            createFloatingParticles();
+            
+            // 每秒更新时间
+            setInterval(updateTime, 1000);
+            
+            // 每6秒自动换诗
+            setInterval(updatePoem, 6000);
+            
+            // 每天更新运行天数 (每24小时)
+            setInterval(updateRunningDays, 24 * 60 * 60 * 1000);
+        });
+    </script>
+</body>
+</html>
